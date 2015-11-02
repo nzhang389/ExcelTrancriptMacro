@@ -1,0 +1,337 @@
+Dim temp(1 To 500) As String
+Dim naCounter As Long
+Dim pos1 As Integer 'position on sheet 1'
+Dim notAllowed(1 To 9999) As String
+
+
+Private Sub CommandButton1_Click()
+
+
+
+Dim x As Integer
+Dim y As Integer
+
+For x = 1 To naCounter
+    notAllowed(x) = ""
+Next x
+
+x = 2
+y = 12
+
+naCounter = 1
+
+Dim col As Integer
+'iterates through the sheet and reads the VVV's and calls on the function to input the data'
+pos1 = 5
+Worksheets("Major check").Select
+Worksheets("Major check").Cells(pos1, 2).Select
+Do While ActiveCell.Value <> "END" Or pos1 > 100
+    If StrComp(ActiveCell.Value, "VVV") = 0 Then
+        ActiveCell.Offset(1, 0).Select
+        col = ActiveCell.Value
+        findClasses col
+    End If
+    pos1 = pos1 + 1
+    Worksheets("Major check").Select
+    Worksheets("Major check").Cells(pos1, 2).Select
+Loop
+
+End Sub
+
+
+
+
+'This sub will find the data that matches and then input it onto the Major Check worksheet'
+Sub findClasses(col As Integer)
+
+Dim pos2 As Integer
+Dim totUsed As Integer
+Dim i As Integer
+Dim numTransfer As Integer
+Dim theGrade As String
+
+Dim num As Integer
+Dim maxGrade As String
+Dim intGrade As Integer
+Dim vsGrade As Integer
+Dim termName As String
+
+‘This variable is used as a tracker of my current position on sheet 2 (resources)’
+pos2 = 2
+
+
+
+Worksheets("Resources").Select
+Worksheets("Resources").Cells(pos2, col).Select
+Do While ActiveCell.Value <> ""
+    totUsed = 0
+    ‘numTransfer will store the total number of classes I need to transfer'
+    numTransfer = ActiveCell.Value
+    pos2 = pos2 + 1
+    ActiveCell.Offset(1, 0).Select
+    
+‘Store all the names of classes into temp’
+    Do While ActiveCell.Value <> "#" And ActiveCell.Value <> "" 
+        totUsed = totUsed + 1
+        temp(totUsed) = ActiveCell.Value
+        ActiveCell.Offset(1, 0).Select
+        pos2 = pos2 + 1
+    Loop
+
+‘Special call if numTransfer is 0. It will move every class until the ending statement over to the Major Check worksheet’
+    If numTransfer = 0 Then
+        For i = 1 To totUsed
+            num = 2
+            intGrade = 0
+            Do While Cells(num, 1).Value <> ""
+                If StrComp(Cells(num, 1).Value, temp(i)) = 0 Then
+                    vsGrade = gradeToNumber(Cells(num, 5).Value)
+                    If vsGrade > intGrade Then
+                        maxGrade = Cells(num, 5).Value
+                        intGrade = vsGrade
+                        termName = Cells(num, 3).Value
+                    End If
+                End If
+                num = num + 1
+            Loop
+            Worksheets("Major check").Select
+            Worksheets("Major check").Cells(pos1, 2).Select
+            ActiveCell.Value = temp(i)
+            ActiveCell.Offset(0, 2).Select
+            ActiveCell.Value = termName
+            ActiveCell.Offset(0, 3).Select
+            ActiveCell.Value = maxGrade
+            notAllowed(naCounter) = temp(i)
+            termName = ""
+            maxGrade = ""
+            temp(i) = ""
+            naCounter = naCounter + 1
+            pos1 = pos1 + 1
+        Next i
+    Else
+        transfer totUsed, numTransfer
+        For i = 1 To totUsed
+            temp(i) = ""
+        Next i
+    End If
+    pos2 = pos2 + 1
+    Worksheets("Resources").Select
+    Worksheets("Resources").Cells(pos2, col).Select
+Loop
+
+End Sub
+
+
+‘Function that takes number we want to transfer and finds the correct classes on the transcript to move to the major check sheet’
+Sub transfer(totUsed As Integer, numTransfer As Integer)
+
+
+Dim x As Integer
+Dim y As Integer
+Dim a As Integer
+Dim Index As Integer
+Dim indexMax As Integer
+Dim max As Integer
+Dim counter As Integer
+Dim tempClass As String
+Dim tempGrade As Integer
+Dim templGrade As String
+Dim first As String
+
+Dim quarter(1 To 100) As String
+Dim fq(1 To 100) As String
+Dim class(1 To 100) As String
+Dim grades(1 To 100) As Integer
+Dim lGrades(1 To 100) As String
+Dim finalGrades(1 To 100) As String
+Dim final(1 To 100) As String
+
+Dim there As Boolean
+Dim fCounter As Integer
+
+Index = 0
+a = 2
+
+'iterates through the classes on the transcript’
+Do While Cells(a, 1).Value <> ""
+    x = 1
+    ‘Iterates through the list of classes that were required to check if they match’
+    Do While temp(x) <> ""
+        If StrComp(Cells(a, 1).Value, temp(x)) = 0 Then
+            notThere = True
+            y = 1
+	    ‘notAllowed holds the previously inputted classes. If it was already used, it is not allowed to be listed later.’
+            Do While notAllowed(y) <> ""
+                If StrComp(Cells(a, 1).Value, notAllowed(y)) = 0 Then notThere = False
+                y = y + 1
+            Loop
+	     ‘Stores the necessary data: class name, grade, and semester taken’
+            If notThere = True Then
+                Index = Index + 1
+                class(Index) = Cells(a, 1).Value
+                lGrades(Index) = Cells(a, 5).Value
+                grades(Index) = gradeToNumber(Cells(a, 5).Value)
+                quarter(Index) = Cells(a, 3).Value
+            End If
+        End If
+        x = x + 1
+    Loop
+    a = a + 1
+Loop
+
+'Sorts by grade'
+
+For x = 1 To Index - 1
+    indexMax = x
+    max = grades(x)
+    y = x + 1
+    Do While class(y) <> ""
+        If (grades(y) > max) Then
+            max = grades(y)
+            indexMax = y
+        End If
+        y = y + 1
+    Loop
+    'swaps the first and largest value'
+    tempClass = class(x)
+    class(x) = class(indexMax)
+    class(indexMax) = tempClass
+    tempGrade = grades(x)
+    grades(x) = grades(indexMax)
+    grades(indexMax) = tempGrade
+    templGrade = lGrades(x)
+    lGrades(x) = lGrades(indexMax)
+    lGrades(indexMax) = templGrade
+    templGrade = quarter(x)
+    quarter(x) = quarter(indexMax)
+    quarter(indexMax) = templGrade
+Next x
+
+fCounter = 0
+
+
+'Stores everything into final array based on the grade received in the class’
+x = 1
+Do While x <= numTransfer
+    If grades(x) < 22 And grades(x) > 5 Then
+        'Case with a D'
+        there = False
+        For y = 1 To naCounter
+            If StrComp(notAllowed(y), class(x)) = 0 Then there = True
+        Next y
+        If there = True Then
+            numTransfer = numTransfer + 1
+        Else
+            fCounter = fCounter + 1
+            final(fCounter) = class(x)
+            finalGrades(fCounter) = lGrades(x)
+            fq(fCounter) = quarter(x)
+            notAllowed(naCounter) = class(x)
+            naCounter = naCounter + 1
+        End If
+    ElseIf grades(x) < 5 Then
+        'CASE WiTH F'
+        x = numTransfer
+    Else
+       fCounter = fCounter + 1
+       final(fCounter) = class(x)
+       finalGrades(fCounter) = lGrades(x)
+       fq(fCounter) = quarter(x)
+        notAllowed(naCounter) = class(x)
+        naCounter = naCounter + 1
+    End If
+    x = x + 1
+Loop
+
+‘Sorts the classes alphabetically’
+For x = 1 To fCounter - 1
+    indexMax = x
+    first = final(x)
+    y = x + 1
+    Do While final(y) <> ""
+        If StrComp(final(indexMax), final(y)) > 0 Then
+            indexMax = y
+            first = final(y)
+        End If
+        y = y + 1
+    Loop
+    templGrade = finalGrades(x)
+    finalGrades(x) = finalGrades(indexMax)
+    finalGrades(indexMax) = templGrade
+    tempClass = final(x)
+    final(x) = class(indexMax)
+    final(indexMax) = tempClass
+    tempClass = fq(x)
+    fq(x) = fq(indexMax)
+    fq(indexMax) = tempClass
+Next x
+
+‘copies the final arrays onto their positions on the major check sheet’
+For x = 1 To numTransfer
+   Worksheets("Major check").Select
+    Worksheets("Major check").Cells(pos1, 2).Select
+    ActiveCell.Value = final(x)
+    Worksheets("Major check").Select
+    Worksheets("Major check").Cells(pos1, 7).Select
+    ActiveCell.Value = finalGrades(x)
+    Worksheets("Major check").Select
+    Worksheets("Major check").Cells(pos1, 4).Select
+    ActiveCell.Value = fq(x)
+    
+    pos1 = pos1 + 1
+Next x
+
+
+
+‘clears the variables’
+For x = 1 To Index
+    class(x) = ""
+    grades(x) = 0
+    lGrades(x) = ""
+    final(x) = ""
+    finalGrades(x) = 0
+    fq(x) = ""
+    quarter(x) = ""
+Next x
+
+
+End Sub
+
+‘changes a letter grade in the transcript to a comparable integer’
+Function gradeToNumber(x As String) As Integer
+    If StrComp(x, "A+") = 0 Then
+        gradeToNumber = 30
+    ElseIf StrComp(x, "A") = 0 Then
+        gradeToNumber = 29
+    ElseIf StrComp(x, "A-") = 0 Then
+        gradeToNumber = 28
+    ElseIf StrComp(x, "B+") = 0 Then
+        gradeToNumber = 27
+    ElseIf StrComp(x, "B") = 0 Then
+        gradeToNumber = 26
+    ElseIf StrComp(x, "B-") = 0 Then
+        gradeToNumber = 25
+    ElseIf StrComp(x, "C+") = 0 Then
+        gradeToNumber = 24
+    ElseIf StrComp(x, "C") = 0 Then
+        gradeToNumber = 23
+    ElseIf StrComp(x, "C-") = 0 Then
+        gradeToNumber = 22
+    ElseIf StrComp(x, "D+") = 0 Then
+        gradeToNumber = 21
+    ElseIf StrComp(x, "D") = 0 Then
+        gradeToNumber = 20
+    ElseIf StrComp(x, "D-") = 0 Then
+        gradeToNumber = 19
+    ElseIf StrComp(x, "F+") = 0 Then
+        gradeToNumber = 4
+    ElseIf StrComp(x, "F") = 0 Then
+        gradeToNumber = 3
+    ElseIf StrComp(x, "F-") = 0 Then
+        gradeToNumber = 2
+    Else
+        gradeToNumber = 1
+    End If
+End Function
+
+
